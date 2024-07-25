@@ -46,7 +46,9 @@ function sendDiscordWebhook(payload) {
         if (res.statusCode === 204) {
           resolve(responseData);
         } else {
-          const error = new Error(`Received status code ${res.statusCode}: ${responseData}`);
+          const error = new Error(
+            `Received status code ${res.statusCode}: ${responseData}`
+          );
           log.error(`${error.message}\nResponse Body: ${responseData}`);
           reject(error);
         }
@@ -63,31 +65,37 @@ function sendDiscordWebhook(payload) {
   });
 }
 
-// Function to create embed message for Discord based on GitHub event 
+// Function to create embed message for Discord based on GitHub event
 function createEmbed(eventType, payload) {
-  const githubLogoUrl = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png";
+  const githubLogoUrl =
+    "https://cdn.discordapp.com/attachments/1000001747491758120/1265029790541549568/logo.png?ex=66a0064d&is=669eb4cd&hm=32bf379131b47f4bcb02de10c8204e60d94ec201ced6250b2649c1657a000de1&";
 
   let embed = {
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     color: 0x7289da,
-    footer: { text: '' },
-    author: { name: '', icon_url: githubLogoUrl },
+    footer: { text: "", icon_url: githubLogoUrl },
+    author: { name: "", icon_url: githubLogoUrl },
     url: null,
-    fields: []
+    timestamp: new Date().toISOString(),
   };
 
   switch (eventType) {
     case "push":
-      if (payload.pusher && payload.repository && payload.commits && payload.commits.length > 0) {
-        embed.title = `Push Event: ${payload.pusher.name}`;
-        embed.description = `New push to **${payload.repository.name}**\n\n**Commits:**`;
-        embed.fields = payload.commits.map(commit => ({
-          name: `[${commit.id.slice(0, 7)}](${payload.repository.html_url}/commit/${commit.id}) ${commit.message}`,
-          value: `\`\`\`Author: ${commit.author.name}\`\`\``,
-          inline: false,
-        }));
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+      if (
+        payload.pusher &&
+        payload.repository &&
+        payload.commits &&
+        payload.commits.length > 0
+      ) {
+        embed.title = `Push Event`;
+        embed.description = `**Commits:**\n`;
+        payload.commits.forEach((commit) => {
+          embed.description += `> [${commit.id.slice(0, 7)}](${
+            payload.repository.html_url
+          }/commit/${commit.id}) ${commit.message}\n\n`;
+        });
+        embed.footer.text = `Githook`;
         embed.author.name = payload.pusher.name;
         embed.author.icon_url = payload.pusher.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -98,8 +106,10 @@ function createEmbed(eventType, payload) {
     case "issues":
       if (payload.action && payload.issue && payload.repository) {
         embed.title = `Issue ${payload.action}: ${payload.issue.title}`;
-        embed.description = `${payload.issue.body ? payload.issue.body : "No description provided."}\n\n**Issue:** [#${payload.issue.number}](${payload.issue.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `[#${payload.issue.number}](${
+          payload.issue.html_url
+        }) \n\n**Issue:** ${payload.issue.body || "No description provided."}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.issue.user.login;
         embed.author.icon_url = payload.issue.user.avatar_url || githubLogoUrl;
         embed.url = payload.issue.html_url;
@@ -110,10 +120,15 @@ function createEmbed(eventType, payload) {
     case "issue_comment":
       if (payload.issue && payload.comment && payload.repository) {
         embed.title = `New comment on issue: ${payload.issue.title}`;
-        embed.description = `${payload.comment.body ? payload.comment.body : "No comment body."}\n\n**Comment:** [#${payload.comment.id}](${payload.comment.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `${
+          payload.comment.body || "No comment body."
+        }\n\n**Comment:** [#${payload.comment.id}](${
+          payload.comment.html_url
+        })`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.comment.user.login;
-        embed.author.icon_url = payload.comment.user.avatar_url || githubLogoUrl;
+        embed.author.icon_url =
+          payload.comment.user.avatar_url || githubLogoUrl;
         embed.url = payload.comment.html_url;
         break;
       }
@@ -122,10 +137,17 @@ function createEmbed(eventType, payload) {
     case "pull_request":
       if (payload.action && payload.pull_request && payload.repository) {
         embed.title = `Pull Request ${payload.action}: ${payload.pull_request.title}`;
-        embed.description = `${payload.pull_request.body ? payload.pull_request.body.slice(0, 1024) : "🔹No description"}\n\n**Pull Request:** [#${payload.pull_request.number}](${payload.pull_request.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `${
+          payload.pull_request.body
+            ? payload.pull_request.body.slice(0, 1024)
+            : "🔹No description"
+        }\n\n**Pull Request:** [#${payload.pull_request.number}](${
+          payload.pull_request.html_url
+        })`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.pull_request.user.login;
-        embed.author.icon_url = payload.pull_request.user.avatar_url || githubLogoUrl;
+        embed.author.icon_url =
+          payload.pull_request.user.avatar_url || githubLogoUrl;
         embed.url = payload.pull_request.html_url;
         break;
       }
@@ -134,8 +156,10 @@ function createEmbed(eventType, payload) {
     case "pull_request_review":
       if (payload.action && payload.review && payload.repository) {
         embed.title = `Pull Request Review ${payload.action}`;
-        embed.description = `${payload.review.body ? payload.review.body : "No review body."}\n\n**Review:** [#${payload.review.id}](${payload.review.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `${
+          payload.review.body || "No review body."
+        }\n\n**Review:** [#${payload.review.id}](${payload.review.html_url})`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.review.user.login;
         embed.author.icon_url = payload.review.user.avatar_url || githubLogoUrl;
         embed.url = payload.review.html_url;
@@ -146,10 +170,15 @@ function createEmbed(eventType, payload) {
     case "pull_request_review_comment":
       if (payload.pull_request && payload.comment && payload.repository) {
         embed.title = `New comment on pull request: ${payload.pull_request.title}`;
-        embed.description = `${payload.comment.body ? payload.comment.body : "No comment body."}\n\n**Comment:** [#${payload.comment.id}](${payload.comment.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `${
+          payload.comment.body || "No comment body."
+        }\n\n**Comment:** [#${payload.comment.id}](${
+          payload.comment.html_url
+        })`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.comment.user.login;
-        embed.author.icon_url = payload.comment.user.avatar_url || githubLogoUrl;
+        embed.author.icon_url =
+          payload.comment.user.avatar_url || githubLogoUrl;
         embed.url = payload.comment.html_url;
         break;
       }
@@ -159,7 +188,7 @@ function createEmbed(eventType, payload) {
       if (payload.sender && payload.repository) {
         embed.title = `Repository ${payload.action} (starred)`;
         embed.description = `${payload.sender.login} ${payload.action} (starred) the repository.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.sender.login;
         embed.author.icon_url = payload.sender.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -171,7 +200,7 @@ function createEmbed(eventType, payload) {
       if (payload.sender && payload.repository && payload.forkee) {
         embed.title = `Repository forked`;
         embed.description = `${payload.sender.login} forked the repository.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.sender.login;
         embed.author.icon_url = payload.sender.avatar_url || githubLogoUrl;
         embed.url = payload.forkee.html_url;
@@ -180,10 +209,15 @@ function createEmbed(eventType, payload) {
       return null;
 
     case "create":
-      if (payload.ref && payload.ref_type && payload.repository && payload.sender) {
+      if (
+        payload.ref &&
+        payload.ref_type &&
+        payload.repository &&
+        payload.sender
+      ) {
         embed.title = `Created ${payload.ref_type}: ${payload.ref}`;
         embed.description = `${payload.sender.login} created a new ${payload.ref_type}.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.sender.login;
         embed.author.icon_url = payload.sender.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -192,10 +226,15 @@ function createEmbed(eventType, payload) {
       return null;
 
     case "delete":
-      if (payload.ref && payload.ref_type && payload.repository && payload.sender) {
+      if (
+        payload.ref &&
+        payload.ref_type &&
+        payload.repository &&
+        payload.sender
+      ) {
         embed.title = `Deleted ${payload.ref_type}: ${payload.ref}`;
         embed.description = `${payload.sender.login} deleted the ${payload.ref_type}.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.sender.login;
         embed.author.icon_url = payload.sender.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -206,10 +245,15 @@ function createEmbed(eventType, payload) {
     case "release":
       if (payload.action && payload.release && payload.repository) {
         embed.title = `Release ${payload.action}: ${payload.release.name}`;
-        embed.description = `${payload.release.body ? payload.release.body : "No release body."}\n\n**Release:** [#${payload.release.id}](${payload.release.html_url})`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.description = `${
+          payload.release.body || "No release body."
+        }\n\n**Release:** [#${payload.release.id}](${
+          payload.release.html_url
+        })`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.release.author.login;
-        embed.author.icon_url = payload.release.author.avatar_url || githubLogoUrl;
+        embed.author.icon_url =
+          payload.release.author.avatar_url || githubLogoUrl;
         embed.url = payload.release.html_url;
         break;
       }
@@ -219,7 +263,7 @@ function createEmbed(eventType, payload) {
       if (payload.action && payload.sender && payload.repository) {
         embed.title = `Repository ${payload.action} (watched)`;
         embed.description = `${payload.sender.login} ${payload.action} (watched) the repository.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.sender.login;
         embed.author.icon_url = payload.sender.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -231,7 +275,7 @@ function createEmbed(eventType, payload) {
       if (payload.action && payload.member && payload.repository) {
         embed.title = `Member ${payload.action}`;
         embed.description = `${payload.member.login} was ${payload.action} to the repository.`;
-        embed.footer.text = `Repository: ${payload.repository.name}`;
+        embed.footer.text = `Githook`;
         embed.author.name = payload.member.login;
         embed.author.icon_url = payload.member.avatar_url || githubLogoUrl;
         embed.url = payload.repository.html_url;
@@ -241,19 +285,20 @@ function createEmbed(eventType, payload) {
 
     default:
       console.error(
-        `Unsupported event type: ${eventType} with action ${payload.action || ""}`
+        `${language.webhook_default_error_1} ${eventType} ${
+          language.webhook_default_error_1
+        } ${payload.action || ""}`
       );
       return null;
   }
 
   if (!embed.title && !embed.description) {
-    console.error("Embed title and description are both empty.");
+    console.error(`${language.webhook_default_embed_log_1}`);
     return null;
   }
 
   return embed;
 }
-
 
 // Function to check BranchStatus and event status
 function checkBranchStatus(eventType) {
@@ -311,7 +356,11 @@ app.get("/webhook", (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`online`);
-  log.debug(`${language.select_language} [ ${LANGUAGES === "eng" ? "English" : "Nederlands"} ]`);
+  log.debug(
+    `${language.select_language} [ ${
+      LANGUAGES === "eng" ? "English" : "Nederlands"
+    } ]`
+  );
   log.debug(`${language.webhook_start_running}: [ ${PORT} ]`);
   log.debug(
     `${language.webhook_start_listening} [ ${WebHookUrl}:${PORT}/webhook ]`
